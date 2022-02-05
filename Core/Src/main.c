@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "ADP.h"
-//#include "adpd188.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -64,21 +63,17 @@ static void MX_SPI1_Init(void);
   * @brief  The application entry point.
   * @retval int
   */
-
-uint16_t rxData=0;
 int main(void)
 {
-
-//    adpd188_init(&hspi1);
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
-//    test();
+
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-   struct CsPin csPin ={GPIOE,GPIO_PIN_12};
+
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -89,63 +84,36 @@ int main(void)
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
-//    HAL_GPIO_WritePin()
+
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-
-
-    __HAL_RCC_GPIOE_CLK_ENABLE();
-
-    GPIO_InitStruct.Pin = GPIO_PIN_12;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+//    GPIO_InitTypeDef GPIO_InitStruct = {0};
+//    GPIO_InitStruct.Pin = GPIO_PIN_15;
+//    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//    GPIO_InitStruct.Pull = GPIO_PULLUP;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+//
+    struct CsPin csPin ={GPIOA,GPIO_PIN_15};
   /* USER CODE END 2 */
-//    HAL_GPIO_WritePin(GPIOE,12,1);
-    GPIOE->BSRR |= GPIO_BSRR_BS12;
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-    smokeSensorADPD188Init(hspi1,csPin);
+    if(smokeSensorADPD188Init(hspi1,csPin)==HAL_OK)
+    {
+        HAL_Delay(1);
+    }
+    else
+    {
+        HAL_Delay(2);
+    }
   while (1)
   {
-//      HAL_GPIO_WritePin(GPIOE,12,0);
-//      GPIOE->BSRR |= GPIO_BSRR_BR12;
-//      if( HAL_SPI_Transmit(&hspi1,data,2,2)==HAL_OK)
-//      {
-//          GPIOE->BSRR |= GPIO_BSRR_BS12;
-//      }
-//      else
-//      {
-//          // error TBD
-//      }
-//      setDeviceMode(hspi1,STANDBY,csPin);
-      if (smokeSensorADPD188Detect(hspi1,csPin)==HAL_OK)
-      {
-          // sensor detected
-          HAL_Delay(1);
-      }
-      else
-      {
-          // Error while detecting the sensor
-          HAL_Delay(2);
-      }
-//      HAL_GPIO_WritePin(GPIOE,12,1);
-//      HAL_GPIO_WritePin(GPIOE,12,GPIO_PIN_SET);
-//      GPIOE->BSRR |= GPIO_BSRR_BS12;
-//      for (int i = 0; i < 10; ++i) {
-//
-//      }
-//
-//      GPIOE->BSRR |= GPIO_BSRR_BR12;
-//      HAL_GPIO_WritePin(GPIOE,12,0);
-      /* USER CODE END WHILE */
-
+    /* USER CODE END WHILE */
+      readData(hspi1,csPin);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -173,7 +141,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = 0;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -182,12 +156,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -215,14 +189,14 @@ static void MX_SPI1_Init(void)
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
-  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 7;
   hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -240,9 +214,22 @@ static void MX_SPI1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 

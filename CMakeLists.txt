@@ -14,7 +14,7 @@ set(SIZE arm-none-eabi-size)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # project settings
-project(gasSensor C CXX ASM)
+project(smokeSensorL4 C CXX ASM)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
@@ -49,14 +49,13 @@ else ()
     add_compile_options(-Og -g)
 endif ()
 
-include_directories(Core/Inc Drivers/STM32L4xx_HAL_Driver/Inc Drivers/STM32L4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32L4xx/Include Drivers/CMSIS/Include Drivers/ADP/)
+include_directories(Core/Inc Drivers/STM32L4xx_HAL_Driver/Inc Drivers/STM32L4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32L4xx/Include Drivers/CMSIS/Include  Drivers/ADP/)
 
-include_directories(Multiple/Application/Inc Multiple/Common Multiple/DriverADPD  Multiple/DriverMCU/ADPD_M4_uC/Inc Multiple/HWIF/ADPD_M4_uC/)
-add_definitions(-DUSE_HAL_DRIVER -DSTM32L476xx)
+add_definitions(-DUSE_HAL_DRIVER -DSTM32L431xx)
 
-file(GLOB_RECURSE SOURCES "startup/*.*" "Drivers/*.*" "Core/*.*"    "Multiple/*.*" "Drivers/ADP/*" )
+file(GLOB_RECURSE SOURCES "startup/*.*" "Drivers/*.*" "Core/*.*" "Drivers/ADP/*.*")
 
-set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32L476VGTx_FLASH.ld)
+set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32L431CBUx_FLASH.ld)
 
 add_link_options(-Wl,-gc-sections,--print-memory-usage,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
 add_link_options(-mcpu=cortex-m4 -mthumb -mthumb-interwork)
