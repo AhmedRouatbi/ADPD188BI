@@ -3,7 +3,8 @@
 #define GASSENSOR_ADP_H
 
 #include "stm32l4xx_hal.h"
-
+#include <stdbool.h>
+#include <string.h>
 //extern  SPI_HandleTypeDef hspi;
 typedef enum {
     STANDBY = 0,
@@ -16,20 +17,7 @@ typedef enum {
 
 
 
-struct RegisterAddress {
-    uint8_t writeReadBit: 1;
-    uint8_t addressValue: 7;
-};
 
-struct SpiMessage {
-    struct RegisterAddress registerAddress;
-    uint16_t data;
-};
-
-struct SpiMessageFifo {
-    struct RegisterAddress registerAddress;
-    uint8_t data[128];
-};
 
 
 struct CsPin {
@@ -129,15 +117,15 @@ union NumAvgRegister
 
 
 
-union NewSpiMessage
+union SpiRegisterData
 {
-    struct NSpiMessage
+    struct DataFormat
     {
-        uint8_t registerAddress:7;
         uint8_t writeReadBit:1;
+        uint8_t registerAddress:7;
         uint8_t msb;
         uint8_t lsb;
-    }newSpiMessage;
+    }dataFormat;
     uint32_t raw:24;
 };
 
@@ -167,7 +155,7 @@ static const uint8_t PD_LED_SEL_REGISTER=0x14;
 //----------------------------------------------------------------------------------------------------------------------
 void setDeviceMode(SPI_HandleTypeDef hspi, DeviceStates state, struct CsPin csPin);
 
-HAL_StatusTypeDef writeToRegister(const uint8_t registerAddress, const uint16_t data, SPI_HandleTypeDef hspi, struct CsPin csPin);
+HAL_StatusTypeDef writeToRegister(const uint8_t registerAddress, const uint16_t data, SPI_HandleTypeDef hspi, struct CsPin csPin,bool isVerifyWriting);
 
 uint16_t readRegisterData(const uint8_t registerAddress, SPI_HandleTypeDef hspi, struct CsPin csPin);
 

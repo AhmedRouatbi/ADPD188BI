@@ -64,6 +64,7 @@ static void MX_SPI1_Init(void);
   * @retval int
   */
   union FifoData fifoData={0,0};
+  uint64_t maxValue=0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -117,16 +118,17 @@ int main(void)
       fifoData=  readData(hspi1,csPin);
       if( fifoData.raw!=0x00)
       {
-          if(fifoData.bytes.SLOTA>840)
-          {
-              HAL_Delay(1);
-          }
-          if(fifoData.bytes.SLOTB>1220)
-          {
-              HAL_Delay(1);
-          }
-      }
+           if(fifoData.bytes.SLOTA+fifoData.bytes.SLOTB>2060)
+           {
+               HAL_Delay(1);
+           }
+           if(fifoData.bytes.SLOTA+fifoData.bytes.SLOTB>maxValue)
+           {
+               maxValue=fifoData.bytes.SLOTA+fifoData.bytes.SLOTB;
+           }
 
+      }
+      HAL_Delay(1);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
