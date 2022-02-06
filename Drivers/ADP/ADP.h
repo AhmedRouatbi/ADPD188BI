@@ -11,6 +11,11 @@ typedef enum {
     NORMAL
 } DeviceStates;
 
+
+
+
+
+
 struct RegisterAddress {
     uint8_t writeReadBit: 1;
     uint8_t addressValue: 7;
@@ -121,6 +126,33 @@ union NumAvgRegister
     }bits;
     uint16_t raw;
 };
+
+
+
+union NewSpiMessage
+{
+    struct NSpiMessage
+    {
+        uint8_t registerAddress:7;
+        uint8_t writeReadBit:1;
+        uint8_t msb;
+        uint8_t lsb;
+    }newSpiMessage;
+    uint32_t raw:24;
+};
+
+
+union FifoData
+{
+    struct FifoDataBytes
+    {
+        uint32_t SLOTA;
+        uint32_t SLOTB;
+    }bytes;
+    uint64_t raw;
+};
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 static const uint8_t MODE_REGISTER = 0x10;
@@ -145,8 +177,8 @@ HAL_StatusTypeDef smokeSensorADPD188Init(SPI_HandleTypeDef hspi, struct CsPin cs
 
 HAL_StatusTypeDef terminateNormalOperation(SPI_HandleTypeDef hspi, struct CsPin csPin);
 
-uint32_t readData(SPI_HandleTypeDef hspi, struct CsPin csPin);
+union FifoData readData(SPI_HandleTypeDef hspi, struct CsPin csPin);
 void config(SPI_HandleTypeDef hspi, struct CsPin csPin);
-void  readFifo( SPI_HandleTypeDef hspi, struct CsPin csPin );
+union FifoData readFifo( SPI_HandleTypeDef hspi, struct CsPin csPin );
 #endif //GASSENSOR_ADP_H
 

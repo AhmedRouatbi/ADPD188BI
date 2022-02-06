@@ -34,8 +34,8 @@ HAL_StatusTypeDef writeToRegister(const uint8_t registerAddress,const uint16_t d
     spiMessage.data=data;
     uint8_t txData[3];
     txData[0]=spiMessage.registerAddress.addressValue<<1 |spiMessage.registerAddress.writeReadBit;
-    txData[1]=(data>>8)&0xFF;
-    txData[2]=data&0xFF;
+    txData[1]=(data>>8)&0xFF; // MSB
+    txData[2]=data&0xFF;    // LSB
     HAL_GPIO_WritePin(csPin.gpio, csPin.gpioPinMask, GPIO_PIN_RESET);
     HAL_SPI_Transmit(&hspi, txData, 3, 100);
     HAL_GPIO_WritePin(csPin.gpio,csPin.gpioPinMask,GPIO_PIN_SET);
@@ -144,65 +144,27 @@ static uint8_t dataA[64]={};
 
 static uint8_t dataB[64]={};
 
-union FifoData
+
+union FifoData  readFifo( SPI_HandleTypeDef hspi, struct CsPin csPin)
 {
-    struct FifoDataBytes
-    {
-        uint32_t SLOTA;
-        uint32_t SLOTB;
-    }bytes;
-    uint64_t raw;
-};
-void  readFifo( SPI_HandleTypeDef hspi, struct CsPin csPin)
-{
-    uint16_t rxData[8]={};
+    uint16_t rxData[4]={};
     union FifoData fifoData={0,0};
     uint8_t j=0;
-    for (uint8_t i=0;i<8;i++)
+    for (uint8_t i=0;i<4;i++)
     {
         rxData[i] = readRegisterData(FIFO_ACCESS_REGISTER,hspi,csPin);
-//        if(rxData[i]!=0x0000 && rxData[i]!=0xFFFF )
-//        {
-//            HAL_Delay(1);
-//        }
+
     }
     memcpy(&fifoData.raw,rxData,8);
-
-
-
-    if(fifoData.bytes.SLOTA>840)
-    {
-        HAL_Delay(1);
-    }
-
-    if(fifoData.bytes.SLOTB>1220)
-    {
-        HAL_Delay(1);
-    }
-//    rxData[0]= readRegisterData(0x64,hspi,csPin);
-//    //    HAL_Delay(1);
-//
-//    rxData[1]=readRegisterData(0x70,hspi,csPin);
-//    rxData[2]=readRegisterData(0x74,hspi,csPin);
-//
-//    rxData[3]=readRegisterData(0x78,hspi,csPin);
-//    rxData[4]=readRegisterData(0x79,hspi,csPin);
-
-
-    HAL_Delay(1);
-    // register size is always 2 bytes + 1 Byte for Address
-//    for (uint8_t i=0;i<64;i=i+2)
-//    {
-//        HAL_SPI_TransmitReceive(&hspi,(uint8_t *)(&spiMessage),&payload[i],2,100);
-//    }
-
-
+    return fifoData;
 }
-uint16_t  fifoData=0;
-uint16_t modes=0;
-uint32_t readData(SPI_HandleTypeDef hspi, struct CsPin csPin)
-{
 
+
+union FifoData readData(SPI_HandleTypeDef hspi, struct CsPin csPin)
+{
+    uint16_t modes=0;
+    union FifoData fifoData1={0,0};
+   // polling method   sampling frequency 100mS/ 10Hz
     if(!isTimeout)
     {
         startTime=HAL_GetTick();
@@ -211,28 +173,29 @@ uint32_t readData(SPI_HandleTypeDef hspi, struct CsPin csPin)
 //        statusRegister.raw=0x80FF;
 //        writeToRegister(STATUS_REGISTER,statusRegister.raw,hspi,csPin);
 
-        union DataAccessCtrl dataAccessCtrl={0,1,1,0};
+        union DataAccessCtrl dataAccessCtrl={0,0,0,0};
         writeToRegister(DATA_ACCESS_CONTROL_REGISTER,dataAccessCtrl.raw,hspi,csPin);
 
     }
-    if(HAL_GetTick()-startTime>=200)  // default sampling time is 200 Hz 0x28 on register x
+    if(HAL_GetTick()-startTime>=100)  // default sampling time is 200 Hz 0x28 on register x
     {
-
+        union DataAccessCtrl dataAccessCtrl={0,1,1,0};
+        writeToRegister(DATA_ACCESS_CONTROL_REGISTER,dataAccessCtrl.raw,hspi,csPin);
 //        statusRegister.raw= readRegisterData(STATUS_REGISTER,hspi,csPin);
 //        modes=readRegisterData(DATA_ACCESS_CONTROL_REGISTER,hspi,csPin);
 
         // read Fifo data
         isTimeout=false;
 //        fifoData= readRegisterData(FIFO_ACCESS_REGISTER,hspi,csPin);
-        readFifo(hspi,csPin);
+        fifoData1= readFifo(hspi,csPin);
 
-        union DataAccessCtrl dataAccessCtrl={0,0,0,0};
-        writeToRegister(DATA_ACCESS_CONTROL_REGISTER,dataAccessCtrl.raw,hspi,csPin);
+        return fifoData1;
 
 
 
     }
-    return 0;
+    fifoData1.raw=0;
+    return fifoData1;
 }
 
 
